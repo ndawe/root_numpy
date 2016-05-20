@@ -232,7 +232,7 @@ def hist2array(hist, include_overflow=False, copy=True):
     return array
 
 
-def array2hist(array, hist):
+def array2hist(array, hist, errors=None):
     """Convert a NumPy array into a ROOT histogram
 
     Parameters
@@ -242,6 +242,9 @@ def array2hist(array, hist):
         ROOT histogram.
     hist : ROOT TH1, TH2, or TH3
         A ROOT histogram.
+    errors : numpy array, optional (default=None)
+        A 1, 2, or 3-d numpy array that will set the bin errors of the
+        ROOT histogram. This must be the same shape as ``array``.
 
     Returns
     -------
@@ -253,8 +256,8 @@ def array2hist(array, hist):
     TypeError
         If hist is not a ROOT histogram.
     ValueError
-        If the array and histogram are not compatible in terms of
-        dimensionality or number of bins along any axis.
+        If the array and histogram (and errors if supplied) are not compatible
+        in terms of dimensionality or number of bins along any axis.
 
     Notes
     -----
