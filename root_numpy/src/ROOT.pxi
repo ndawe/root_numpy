@@ -71,6 +71,10 @@ cdef extern from "TBranchElement.h":
 cdef extern from "TBranchElement.h" namespace "TBranchElement":
     ctypedef enum EBranchElementType "TBranchElement::EBranchElementType":
         kLeafNode "TBranchElement::kLeafNode"
+        kBaseClassNode "TBranchElement::kBaseClassNode"
+        kObjectNode "TBranchElement::kObjectNode"
+        kClonesNode "TBranchElement::kClonesNode"
+        kSTLNode "TBranchElement::kSTLNode"
         kClonesMemberNode "TBranchElement::kClonesMemberNode"
         kSTLMemberNode "TBranchElement::kSTLMemberNode"
 
