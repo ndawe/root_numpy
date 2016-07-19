@@ -169,6 +169,9 @@ cdef object tree2array(TTree* tree, bool ischain, branches, string selection,
     cdef long long num_entries = tree.GetEntries()
     cdef long long num_entries_selected = 0
     cdef long long ientry
+    cdef long long istart
+    cdef long long istop
+    cdef long long istep
 
     cdef TreeChain* chain = new TreeChain(tree, ischain, cache_size)
     handle_load(chain.Prepare(), True)
@@ -363,8 +366,12 @@ cdef object tree2array(TTree* tree, bool ischain, branches, string selection,
         dtype = np.dtype(dtype_fields)
 
         # Determine indices in slice
-        indices = xrange(*(slice(start, stop, step).indices(num_entries)))
-        num_entries = len(indices)
+        slice_tuple = slice(start, stop, step).indices(num_entries)
+        istart = slice_tuple[0]
+        istop = slice_tuple[1]
+        istep = slice_tuple[2]
+        slice_indices = xrange(istart, istop, istep)
+        num_entries = len(slice_indices)
 
         # Initialize the array
         try:
@@ -378,7 +385,15 @@ cdef object tree2array(TTree* tree, bool ischain, branches, string selection,
         num_columns = columns.size()
 
         # Loop on entries in the tree and write the data in the array
-        for ientry in indices:
+        ientry = istart - istep
+        while True:
+            ientry += istep
+            # Are we still in the selected range?
+            if istep > 0:
+                if ientry >= istop:
+                    break
+            elif ientry <= istop:
+                break
             entry_size = chain.GetEntry(ientry)
             handle_load(entry_size)
             if entry_size == 0:
