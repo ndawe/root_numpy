@@ -29,9 +29,22 @@ TYPES_NUMPY2ROOT = {
     np.dtype(np.uint16):  (2, 's'),
     np.dtype(np.uint32):  (4, 'i'),
     np.dtype(np.uint64):  (8, 'l'),
-    np.dtype(np.float):   (8, 'D'),
     np.dtype(np.float32): (4, 'F'),
     np.dtype(np.float64): (8, 'D'),
+}
+
+TYPES_NUMPY2C = {
+    np.dtype(np.bool):    'bool',
+    np.dtype(np.int8):    'char',
+    np.dtype(np.int16):   'short',
+    np.dtype(np.int32):   'int',
+    np.dtype(np.int64):   'long',
+    np.dtype(np.uint8):   'unsigned char',
+    np.dtype(np.uint16):  'unsigned short',
+    np.dtype(np.uint32):  'unsigned int',
+    np.dtype(np.uint64):  'unsigned long',
+    np.dtype(np.float32): 'float',
+    np.dtype(np.float64): 'double',
 }
 
 SPECIAL_TYPEDEFS = {
@@ -661,26 +674,31 @@ cdef cppclass FixedNP2ROOTConverter(NP2ROOTConverter):
         this.branch.Fill()
 
 
-cdef NP2ROOTConverter* find_np2root_converter(TTree* tree, name, dtype):
+cdef NP2ROOTConverter* find_np2root_converter(TTree* tree, name, dtype, variable_length=False) except *:
     # TODO:
-    # np.float16 needs special treatment. ROOT doesn't support 16-bit floats.
-    # Handle np.object (array) columns
+    # * np.float16 needs special treatment. ROOT doesn't support 16-bit floats.
+    # * Handle np.object (array) columns
     cdef NP2ROOTConverter* conv = NULL
     cdef int axis, ndim = 0
     cdef int length = 1
     cdef SIZE_t* dims = NULL
-    subdtype = dtype.subdtype
-    if subdtype is not None:
-        # Fixed-size subarray type
-        dtype, shape = subdtype
-        ndim = len(shape)
-        dims = <SIZE_t*> malloc(ndim * sizeof(SIZE_t))
-        if dims == NULL:
-            raise MemoryError("could not allocate %d bytes" % (ndim * sizeof(SIZE_t)))
-        for axis in range(ndim):
-            dims[axis] = shape[axis]
-            length *= dims[axis]
-    if dtype in TYPES_NUMPY2ROOT:
+
+    if not variable_length:
+        subdtype = dtype.subdtype
+        if subdtype is not None:
+            # Fixed-size subarray type
+            dtype, shape = subdtype
+            ndim = len(shape)
+            dims = <SIZE_t*> malloc(ndim * sizeof(SIZE_t))
+            if dims == NULL:
+                raise MemoryError("could not allocate %d bytes" % (ndim * sizeof(SIZE_t)))
+            for axis in range(ndim):
+                dims[axis] = shape[axis]
+                length *= dims[axis]
+
+    if variable_length and dtype in TYPES_NUMPY2C:
+        conv = new VaryNP2ROOTConverter(tree, name, )
+    elif dtype in TYPES_NUMPY2ROOT:
         elembytes, roottype = TYPES_NUMPY2ROOT[dtype]
         conv = new FixedNP2ROOTConverter(tree, name, roottype, length, elembytes, ndim, dims)
     elif dtype.kind == 'S':

@@ -602,13 +602,24 @@ cdef TTree* array2tree(np.ndarray arr, string name='tree', TTree* tree=NULL) exc
             fieldname = fieldnames[icol]
             # roffset is an offset of particular field in each record
             dtype, roffset = fields[fieldname]
-            cvt = find_np2root_converter(tree, fieldname, dtype)
+
+            if dtype == 'O':
+                # inspect dtype of subarray
+                if arr_len == 0:
+                    warnings.warn("unable to inspect dtype of subarray for object field '{0}' "
+                                  "since array is empty (skipping)".format(fieldname))
+                    continue
+                dtype = arr[fieldname][0].dtype
+                cvt = find_np2root_converter(tree, fieldname, dtype)
+            else:
+                cvt = find_np2root_converter(tree, fieldname, dtype)
+
             if cvt != NULL:
                 roffsetarray.push_back(roffset)
                 converters.push_back(cvt)
             else:
-                warnings.warn("converter for {!r} is not "
-                              "implemented (skipping)".format(dtype))
+                warnings.warn("converter for field '{0}' with dtype {1:!r} is not "
+                              "implemented (skipping)".format(fieldname, dtype))
 
         # Fill the data
         num_cols = converters.size()
